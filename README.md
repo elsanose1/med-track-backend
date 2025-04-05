@@ -258,6 +258,416 @@ Response (200 OK):
 }
 ```
 
+### Chat Endpoints (Real-Time Chat Between Patients and Pharmacies)
+
+The chat system utilizes both RESTful API endpoints and WebSocket connections via Socket.IO for real-time communication.
+
+#### REST API Endpoints
+
+##### List All Pharmacies (Patient Only)
+
+```http
+GET /api/chat/pharmacies
+```
+
+Example cURL:
+
+```bash
+curl -X GET http://localhost:3000/api/chat/pharmacies \
+  -H "Authorization: Bearer PATIENT_JWT_TOKEN"
+```
+
+Headers:
+
+```
+Authorization: Bearer <patient_jwt_token>
+```
+
+Response (200 OK):
+
+```json
+[
+  {
+    "_id": "60d21b4667d0d8992e610c86",
+    "username": "citypharmacy",
+    "firstName": "City",
+    "lastName": "Pharmacy",
+    "pharmacyName": "City Pharmacy Inc.",
+    "licenseNumber": "PHR789012"
+  },
+  {
+    "_id": "60d21b4667d0d8992e610c87",
+    "username": "healthpharmacy",
+    "firstName": "Health",
+    "lastName": "Pharmacy",
+    "pharmacyName": "Health First Pharmacy",
+    "licenseNumber": "PHR789013"
+  }
+]
+```
+
+##### Start or Get a Conversation with a Pharmacy (Patient Only)
+
+```http
+GET /api/chat/conversation/pharmacy/:pharmacyId
+```
+
+Example cURL:
+
+```bash
+curl -X GET http://localhost:3000/api/chat/conversation/pharmacy/60d21b4667d0d8992e610c86 \
+  -H "Authorization: Bearer PATIENT_JWT_TOKEN"
+```
+
+Headers:
+
+```
+Authorization: Bearer <patient_jwt_token>
+```
+
+Response (200 OK):
+
+```json
+{
+  "_id": "60d21b4667d0d8992e610c88",
+  "patient": {
+    "_id": "60d21b4667d0d8992e610c85",
+    "username": "johndoe",
+    "firstName": "John",
+    "lastName": "Doe"
+  },
+  "pharmacy": {
+    "_id": "60d21b4667d0d8992e610c86",
+    "username": "citypharmacy",
+    "firstName": "City",
+    "lastName": "Pharmacy",
+    "pharmacyName": "City Pharmacy Inc."
+  },
+  "lastMessage": "",
+  "lastMessageDate": "2023-01-01T12:00:00.000Z",
+  "unreadPatient": 0,
+  "unreadPharmacy": 0,
+  "messages": [],
+  "createdAt": "2023-01-01T12:00:00.000Z",
+  "updatedAt": "2023-01-01T12:00:00.000Z"
+}
+```
+
+##### Get All Conversations
+
+```http
+GET /api/chat/conversations
+```
+
+Example cURL:
+
+```bash
+curl -X GET http://localhost:3000/api/chat/conversations \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+Headers:
+
+```
+Authorization: Bearer <jwt_token>
+```
+
+Response (200 OK):
+
+```json
+[
+  {
+    "_id": "60d21b4667d0d8992e610c88",
+    "patient": {
+      "_id": "60d21b4667d0d8992e610c85",
+      "username": "johndoe",
+      "firstName": "John",
+      "lastName": "Doe"
+    },
+    "pharmacy": {
+      "_id": "60d21b4667d0d8992e610c86",
+      "username": "citypharmacy",
+      "firstName": "City",
+      "lastName": "Pharmacy",
+      "pharmacyName": "City Pharmacy Inc."
+    },
+    "lastMessage": "Hello, I have a question about my prescription.",
+    "lastMessageDate": "2023-01-01T12:30:00.000Z",
+    "unreadPatient": 1,
+    "unreadPharmacy": 0,
+    "messages": ["60d21b4667d0d8992e610c89"],
+    "createdAt": "2023-01-01T12:00:00.000Z",
+    "updatedAt": "2023-01-01T12:30:00.000Z"
+  }
+]
+```
+
+##### Get Messages in a Conversation
+
+```http
+GET /api/chat/conversation/:conversationId/messages?page=1&limit=20
+```
+
+Example cURL:
+
+```bash
+curl -X GET "http://localhost:3000/api/chat/conversation/60d21b4667d0d8992e610c88/messages?page=1&limit=20" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+Headers:
+
+```
+Authorization: Bearer <jwt_token>
+```
+
+Query Parameters:
+
+- `page` (optional): Page number (default: 1)
+- `limit` (optional): Number of messages per page (default: 20)
+
+Response (200 OK):
+
+```json
+{
+  "messages": [
+    {
+      "_id": "60d21b4667d0d8992e610c89",
+      "sender": {
+        "_id": "60d21b4667d0d8992e610c85",
+        "username": "johndoe",
+        "firstName": "John",
+        "lastName": "Doe",
+        "userType": "patient"
+      },
+      "receiver": {
+        "_id": "60d21b4667d0d8992e610c86",
+        "username": "citypharmacy",
+        "firstName": "City",
+        "lastName": "Pharmacy",
+        "userType": "pharmacy"
+      },
+      "message": "Hello, I have a question about my prescription.",
+      "read": false,
+      "createdAt": "2023-01-01T12:30:00.000Z"
+    }
+  ],
+  "pagination": {
+    "total": 1,
+    "page": 1,
+    "limit": 20,
+    "pages": 1
+  }
+}
+```
+
+##### Send a Message in a Conversation
+
+```http
+POST /api/chat/conversation/:conversationId/message
+```
+
+Example cURL:
+
+```bash
+curl -X POST http://localhost:3000/api/chat/conversation/60d21b4667d0d8992e610c88/message \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "message": "Hello, I have a question about my prescription."
+  }'
+```
+
+Headers:
+
+```
+Authorization: Bearer <jwt_token>
+```
+
+Request Body:
+
+```json
+{
+  "message": "Hello, I have a question about my prescription."
+}
+```
+
+Response (201 Created):
+
+```json
+{
+  "_id": "60d21b4667d0d8992e610c89",
+  "sender": {
+    "_id": "60d21b4667d0d8992e610c85",
+    "username": "johndoe",
+    "firstName": "John",
+    "lastName": "Doe",
+    "userType": "patient"
+  },
+  "receiver": {
+    "_id": "60d21b4667d0d8992e610c86",
+    "username": "citypharmacy",
+    "firstName": "City",
+    "lastName": "Pharmacy",
+    "userType": "pharmacy"
+  },
+  "message": "Hello, I have a question about my prescription.",
+  "read": false,
+  "createdAt": "2023-01-01T12:30:00.000Z",
+  "receiverOnline": true
+}
+```
+
+##### Mark Messages as Read in a Conversation
+
+```http
+PUT /api/chat/conversation/:conversationId/read
+```
+
+Example cURL:
+
+```bash
+curl -X PUT http://localhost:3000/api/chat/conversation/60d21b4667d0d8992e610c88/read \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+Headers:
+
+```
+Authorization: Bearer <jwt_token>
+```
+
+Response (200 OK):
+
+```json
+{
+  "message": "Messages marked as read"
+}
+```
+
+##### Get Online Status for Users
+
+```http
+POST /api/chat/online-status
+```
+
+Example cURL:
+
+```bash
+curl -X POST http://localhost:3000/api/chat/online-status \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "userIds": ["60d21b4667d0d8992e610c85", "60d21b4667d0d8992e610c86"]
+  }'
+```
+
+Headers:
+
+```
+Authorization: Bearer <jwt_token>
+```
+
+Request Body:
+
+```json
+{
+  "userIds": ["60d21b4667d0d8992e610c85", "60d21b4667d0d8992e610c86"]
+}
+```
+
+Response (200 OK):
+
+```json
+{
+  "onlineStatus": {
+    "60d21b4667d0d8992e610c85": true,
+    "60d21b4667d0d8992e610c86": false
+  }
+}
+```
+
+#### WebSocket Integration (Socket.IO)
+
+In addition to the REST API, Med-Track provides real-time messaging via WebSockets using Socket.IO. This enables:
+
+- Instant message delivery without polling
+- Online status indicators
+- Typing indicators
+- Read receipts in real-time
+
+##### Connection to Socket.IO
+
+To connect to the WebSocket server, use a Socket.IO client and include your JWT token for authentication:
+
+```javascript
+// Example using the Socket.IO JavaScript client
+const socket = io("http://localhost:3000", {
+  auth: {
+    token: "YOUR_JWT_TOKEN",
+  },
+});
+
+// Handle connection errors
+socket.on("connect_error", (error) => {
+  console.error("Connection error:", error.message);
+});
+```
+
+##### Joining a Conversation
+
+To receive real-time updates for a specific conversation, join the conversation room:
+
+```javascript
+socket.emit("join_conversation", "CONVERSATION_ID");
+```
+
+##### Listening for New Messages
+
+To receive new messages in real-time:
+
+```javascript
+socket.on("new_message", (message) => {
+  console.log("New message received:", message);
+  // Update your UI with the new message
+});
+```
+
+##### Listening for Message Notifications
+
+To receive notifications of new messages when not in the specific conversation:
+
+```javascript
+socket.on("new_message_notification", (data) => {
+  console.log(
+    `New message in conversation ${data.conversationId}:`,
+    data.message
+  );
+  // Update your UI to show a notification
+});
+```
+
+##### Listening for Read Receipts
+
+To be notified when your messages are read:
+
+```javascript
+socket.on("messages_read", (data) => {
+  console.log(
+    `Messages read in conversation ${data.conversationId} by user ${data.userId}`
+  );
+  // Update your UI to show read receipts
+});
+```
+
+##### Leaving a Conversation
+
+When leaving a conversation view:
+
+```javascript
+socket.emit("leave_conversation", "CONVERSATION_ID");
+```
+
 ### Admin Endpoints
 
 #### Create Pharmacy Account (Admin only)
@@ -461,12 +871,16 @@ The system supports three types of users with different permissions:
    - Can view and update their own profile
    - Can access drug information
    - Can only be created through public registration
+   - Can initiate and participate in chat conversations with pharmacies
+   - Can view a list of pharmacy users to contact
 
 2. **Pharmacy**
 
    - Can view and update their own profile
    - Can access drug information
    - Can only be created by an admin
+   - Can participate in chat conversations with patients
+   - Can respond to any patient messages
 
 3. **Admin**
    - Has full access to the system

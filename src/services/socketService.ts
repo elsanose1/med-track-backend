@@ -1,0 +1,152 @@
+import { Server as SocketIOServer } from "socket.io";
+import { Server as HttpServer } from "http";
+import jwt from "jsonwebtoken";
+import { UserType } from "../models/User";
+import { ChatMessage, ChatConversation } from "../models/Chat";
+import User from "../models/User";
+
+// Interface for socket user data
+interface SocketUser {
+  id: string;
+  userType: UserType;
+  socketId: string;
+}
+
+// Map to store online users
+const onlineUsers: Map<string, SocketUser> = new Map();
+
+export function initializeSocketIO(httpServer: HttpServer): SocketIOServer {
+  const io = new SocketIOServer(httpServer, {
+    cors: {
+      origin: "*", // In production, restrict this to your frontend domain
+      methods: ["GET", "POST"],
+    },
+  });
+
+  // Middleware for authentication
+  io.use((socket, next) => {
+    const token = socket.handshake.auth.token;
+    if (!token) {
+      return next(new Error("Authentication error: Token missing"));
+    }
+
+    try {
+      // Verify JWT token
+      const jwtSecret = String(process.env.JWT_SECRET);
+      const decoded = jwt.verify(token, jwtSecret) as any;
+
+      // Add user data to socket
+      socket.data.user = {
+        id: decoded.id,
+        userType: decoded.userType,
+        username: decoded.username,
+        firstName: decoded.firstName,
+        lastName: decoded.lastName,
+      };
+
+      next();
+    } catch (error) {
+      return next(new Error("Authentication error: Invalid token"));
+    }
+  });
+
+  // Handle connections
+  io.on("connection", (socket) => {
+    console.log(`User connected: ${socket.id}`);
+
+    const userId = socket.data.user.id;
+
+    // Add user to online users map
+    onlineUsers.set(userId, {
+      id: userId,
+      userType: socket.data.user.userType,
+      socketId: socket.id,
+    });
+
+    // Join user to their personal room for direct messages
+    socket.join(`user:${userId}`);
+
+    // Handle joining a specific conversation room
+    socket.on("join_conversation", async (conversationId) => {
+      try {
+        // Verify the user is part of the conversation
+        const conversation = await ChatConversation.findById(conversationId);
+        if (!conversation) return;
+
+        const isParticipant =
+          conversation.patient.toString() === userId ||
+          conversation.pharmacy.toString() === userId;
+
+        if (isParticipant) {
+          socket.join(`conversation:${conversationId}`);
+          console.log(`User ${userId} joined conversation ${conversationId}`);
+        }
+      } catch (error) {
+        console.error("Error joining conversation:", error);
+      }
+    });
+
+    // Handle leaving a conversation room
+    socket.on("leave_conversation", (conversationId) => {
+      socket.leave(`conversation:${conversationId}`);
+      console.log(`User ${userId} left conversation ${conversationId}`);
+    });
+
+    // Handle disconnect
+    socket.on("disconnect", () => {
+      onlineUsers.delete(userId);
+      console.log(`User disconnected: ${socket.id}`);
+    });
+  });
+
+  return io;
+}
+
+// Function to emit a new message event
+export async function emitNewMessage(message: any, conversationId: string) {
+  const io = getSocketIOInstance();
+  if (!io) return;
+
+  // Emit to the conversation room
+  io.to(`conversation:${conversationId}`).emit("new_message", message);
+
+  // Also emit to the recipient's personal room if they aren't in the conversation room
+  io.to(`user:${message.receiver._id}`).emit("new_message_notification", {
+    conversationId,
+    message,
+  });
+}
+
+// Function to emit a message read event
+export function emitMessagesRead(conversationId: string, userId: string) {
+  const io = getSocketIOInstance();
+  if (!io) return;
+
+  io.to(`conversation:${conversationId}`).emit("messages_read", {
+    conversationId,
+    userId,
+  });
+}
+
+// Singleton instance of Socket.IO server
+let socketIOInstance: SocketIOServer | null = null;
+
+// Get the Socket.IO instance
+export function getSocketIOInstance(): SocketIOServer | null {
+  return socketIOInstance;
+}
+
+// Set the Socket.IO instance
+export function setSocketIOInstance(io: SocketIOServer): void {
+  socketIOInstance = io;
+}
+
+// Check if a user is online
+export function isUserOnline(userId: string): boolean {
+  return onlineUsers.has(userId);
+}
+
+// Get online users
+export function getOnlineUsers(): SocketUser[] {
+  return Array.from(onlineUsers.values());
+}

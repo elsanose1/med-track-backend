@@ -9,6 +9,8 @@ import connectDB from "./config/db";
 // routes
 import authRoutes from "./routes/auth";
 import drugRoutes from "./routes/drugRoutes";
+import userRoutes from "./routes/user";
+import adminRoutes from "./routes/admin";
 
 // middleware
 import errorHandler from "./middleware/errorHandler";
@@ -20,6 +22,8 @@ app.use(express.json());
 // routes
 app.use("/api/auth", authRoutes);
 app.use("/api/drugs", drugRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/admin", adminRoutes);
 
 // error handler middleware
 app.use(errorHandler);

@@ -1,13 +1,26 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import { UserType } from "../models/User";
 const jwtSecret: string = String(process.env.JWT_SECRET);
 
 export interface AuthenticatedRequest extends Request {
-  user: { id: string };
+  user: {
+    id: string;
+    email: string;
+    username: string;
+    userType: UserType;
+    firstName: string;
+    lastName: string;
+  };
 }
 
 interface JwtPayload {
   id: string;
+  email: string;
+  username: string;
+  userType: UserType;
+  firstName: string;
+  lastName: string;
 }
 
 const authMiddleware = (req: Request, res: Response, next: NextFunction) => {

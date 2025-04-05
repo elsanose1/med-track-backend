@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import User from "../models/User";
 import jwt from "jsonwebtoken";
 import { AuthenticatedRequest } from "../middleware/auth";
+import { UserType } from "../models/User";
 
 const jwtSecret = String(process.env.JWT_SECRET);
 
@@ -21,7 +22,14 @@ export async function loginHandler(req: Request, res: Response) {
     }
 
     const token = jwt.sign(
-      { id: user._id, email: user.email, username: user.username },
+      {
+        id: user._id,
+        email: user.email,
+        username: user.username,
+        userType: user.userType,
+        firstName: user.firstName,
+        lastName: user.lastName,
+      },
       jwtSecret,
       {
         expiresIn: "3h",
@@ -34,9 +42,46 @@ export async function loginHandler(req: Request, res: Response) {
 }
 
 export async function registerHandler(req: Request, res: Response) {
-  const { username, email, password } = req.body;
+  const {
+    username,
+    email,
+    password,
+    firstName,
+    lastName,
+    dateOfBirth,
+    userType,
+    phoneNumber,
+    address,
+    medicalHistory,
+    allergies,
+    licenseNumber,
+    pharmacyName,
+  } = req.body;
+
   try {
-    const user = new User({ username, email, password });
+    // Prevent creation of admin or pharmacy users through public registration
+    if (userType === UserType.ADMIN || userType === UserType.PHARMACY) {
+      return res.status(403).json({
+        message:
+          "Not authorized to create this type of account. Only patient accounts can be created through registration.",
+      });
+    }
+
+    // Force userType to be patient for public registration
+    const user = new User({
+      username,
+      email,
+      password,
+      firstName,
+      lastName,
+      dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
+      userType: UserType.PATIENT, // Force userType to PATIENT
+      phoneNumber,
+      address,
+      medicalHistory,
+      allergies,
+    });
+
     await user.save();
     res.status(201).json({ message: "User registered successfully" });
   } catch (err) {

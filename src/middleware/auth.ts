@@ -11,6 +11,7 @@ export interface AuthenticatedRequest extends Request {
     userType: UserType;
     firstName: string;
     lastName: string;
+    isVerified?: boolean; // For pharmacy users to check their verification status
   };
 }
 
@@ -21,6 +22,7 @@ interface JwtPayload {
   userType: UserType;
   firstName: string;
   lastName: string;
+  isVerified?: boolean; // For pharmacy verification
 }
 
 const authMiddleware = (req: Request, res: Response, next: NextFunction) => {

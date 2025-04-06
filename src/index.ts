@@ -14,12 +14,16 @@ import {
   setSocketIOInstance,
 } from "./services/socketService";
 
+// Reminder service for medication
+import { initializeReminderService } from "./services/reminderService";
+
 // routes
 import authRoutes from "./routes/auth";
 import drugRoutes from "./routes/drugRoutes";
 import userRoutes from "./routes/user";
 import adminRoutes from "./routes/admin";
 import chatRoutes from "./routes/chat";
+import medicationRoutes from "./routes/medicationRoutes";
 
 // middleware
 import errorHandler from "./middleware/errorHandler";
@@ -51,6 +55,7 @@ app.use("/api/drugs", drugRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/chat", chatRoutes);
+app.use("/api/medications", medicationRoutes);
 
 // error handler middleware
 app.use(errorHandler);
@@ -60,4 +65,7 @@ server.listen(PORT, async () => {
   await connectDB();
   console.log(`Server running at http://localhost:${PORT}`);
   console.log(`Socket.IO running on the same port`);
+
+  // Initialize the reminder service after the server is up
+  initializeReminderService();
 });

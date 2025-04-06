@@ -1,937 +1,288 @@
 # Med-Track Backend
 
-A backend service that provides drug information by integrating with the FDA's drug label API. This service allows users to search for drugs by brand name, retrieve specific drug details by ID, and list all available drugs with pagination. The system supports three types of users: patients, pharmacies, and admins.
+A comprehensive medication tracking and reminder system that helps patients manage their medications with real-time reminders and tracking.
 
-## 🚀 Getting Started
+## Features
+
+- **Medication Management**: Add, update, and delete medications from FDA database
+- **Smart Reminders**: Set up reminder schedules with flexible frequency options
+- **Real-time Notifications**: Receive medication reminders in real-time via Socket.IO
+- **Medication Adherence**: Track medication adherence with status updates (taken, missed, snoozed)
+- **User Authentication**: Secure JWT-based authentication system
+- **Role-based Access**: Different features for patients, pharmacies, and admins
+- **Chat System**: Built-in communication between patients and pharmacies
+- **Pharmacy Verification**: Admin approval system for pharmacy registration
+- **Caching System**: Efficient caching for drug data to reduce API calls
+
+## Tech Stack
+
+- **Node.js** with **Express** for RESTful API
+- **MongoDB** with **Mongoose** for data storage
+- **Socket.IO** for real-time notifications
+- **JWT** for authentication
+- **TypeScript** for type safety
+- **Node-Cache** for in-memory caching
+
+## Getting Started
 
 ### Prerequisites
 
 - Node.js (v14 or higher)
+- MongoDB
 - npm or yarn
-- MongoDB (for user authentication)
 
 ### Installation
 
-1. Clone the repository:
+1. Clone the repository
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/yourusername/med-track.git
 cd med-track/backend
 ```
 
-2. Install dependencies:
+2. Install dependencies
 
 ```bash
 npm install
 ```
 
-3. Create a `.env` file in the root directory with the following variables:
+3. Create a `.env` file in the project root
 
-```env
+```
 PORT=3000
-MONGODB_URI=your_mongodb_connection_string
-JWT_SECRET=your_jwt_secret
+MONGODB_URI=mongodb://localhost:27017/med-track
+JWT_SECRET=your_secret_key
+FRONTEND_URL=http://localhost:3001
 ```
 
-4. Start the server:
-
-```bash
-npm start
-```
-
-## 📚 API Documentation
-
-### Authentication Endpoints
-
-#### Register a New User (Patient only)
-
-The registration endpoint only allows creation of patient accounts. Admin and pharmacy accounts must be created by an admin.
-
-```http
-POST /api/auth/register
-```
-
-Example cURL:
+4. Start the development server
 
 ```bash
-curl -X POST http://localhost:3000/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "johndoe",
-    "email": "john@example.com",
-    "password": "securepassword",
-    "firstName": "John",
-    "lastName": "Doe",
-    "dateOfBirth": "1990-01-01",
-    "phoneNumber": "1234567890",
-    "address": "123 Main St, Anytown, US",
-    "medicalHistory": "Hypertension, Diabetes",
-    "allergies": ["Penicillin", "Peanuts"]
-  }'
+npm run dev
 ```
 
-Request Body:
-
-```json
-{
-  "username": "johndoe",
-  "email": "john@example.com",
-  "password": "securepassword",
-  "firstName": "John",
-  "lastName": "Doe",
-  "dateOfBirth": "1990-01-01",
-  "phoneNumber": "1234567890",
-  "address": "123 Main St, Anytown, US",
-  "medicalHistory": "Hypertension, Diabetes",
-  "allergies": ["Penicillin", "Peanuts"]
-}
-```
-
-Response (201 Created):
-
-```json
-{
-  "message": "User registered successfully"
-}
-```
-
-#### User Login
-
-```http
-POST /api/auth/login
-```
-
-Example cURL:
-
-```bash
-curl -X POST http://localhost:3000/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "john@example.com",
-    "password": "securepassword"
-  }'
-```
-
-Request Body:
-
-```json
-{
-  "email": "john@example.com",
-  "password": "securepassword"
-}
-```
-
-Response (200 OK):
-
-```json
-{
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-}
-```
-
-#### Change Password
-
-```http
-POST /api/auth/change-password
-```
-
-Example cURL:
-
-```bash
-curl -X POST http://localhost:3000/api/auth/change-password \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  -d '{
-    "currentPassword": "oldpassword",
-    "newPassword": "newpassword"
-  }'
-```
-
-Headers:
-
-```
-Authorization: Bearer <jwt_token>
-```
-
-Request Body:
-
-```json
-{
-  "currentPassword": "oldpassword",
-  "newPassword": "newpassword"
-}
-```
-
-Response (200 OK):
-
-```json
-{
-  "message": "Password updated successfully"
-}
-```
-
-### User Profile Endpoints
-
-#### Get User Profile
-
-```http
-GET /api/users/profile
-```
-
-Example cURL:
-
-```bash
-curl -X GET http://localhost:3000/api/users/profile \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN"
-```
-
-Headers:
-
-```
-Authorization: Bearer <jwt_token>
-```
-
-Response (200 OK):
-
-```json
-{
-  "_id": "60d21b4667d0d8992e610c85",
-  "username": "johndoe",
-  "email": "john@example.com",
-  "firstName": "John",
-  "lastName": "Doe",
-  "dateOfBirth": "1990-01-01T00:00:00.000Z",
-  "userType": "patient",
-  "phoneNumber": "1234567890",
-  "address": "123 Main St, Anytown, US",
-  "medicalHistory": "Hypertension, Diabetes",
-  "allergies": ["Penicillin", "Peanuts"],
-  "createdAt": "2023-01-01T12:00:00.000Z",
-  "updatedAt": "2023-01-01T12:00:00.000Z"
-}
-```
-
-#### Update User Profile
-
-```http
-PUT /api/users/profile
-```
-
-Example cURL:
-
-```bash
-curl -X PUT http://localhost:3000/api/users/profile \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  -d '{
-    "firstName": "Johnny",
-    "lastName": "Doe",
-    "phoneNumber": "9876543210",
-    "address": "456 Oak St, Newtown, US"
-  }'
-```
-
-Headers:
-
-```
-Authorization: Bearer <jwt_token>
-```
-
-Request Body (include only fields to update):
-
-```json
-{
-  "firstName": "Johnny",
-  "lastName": "Doe",
-  "phoneNumber": "9876543210",
-  "address": "456 Oak St, Newtown, US",
-  "medicalHistory": "Hypertension, Diabetes, Asthma",
-  "allergies": ["Penicillin", "Peanuts", "Shellfish"]
-}
-```
-
-Response (200 OK):
-
-```json
-{
-  // Updated user profile object (similar to GET profile response)
-}
-```
-
-### Chat Endpoints (Real-Time Chat Between Patients and Pharmacies)
-
-The chat system utilizes both RESTful API endpoints and WebSocket connections via Socket.IO for real-time communication.
-
-#### REST API Endpoints
-
-##### List All Pharmacies (Patient Only)
-
-```http
-GET /api/chat/pharmacies
-```
-
-Example cURL:
-
-```bash
-curl -X GET http://localhost:3000/api/chat/pharmacies \
-  -H "Authorization: Bearer PATIENT_JWT_TOKEN"
-```
-
-Headers:
-
-```
-Authorization: Bearer <patient_jwt_token>
-```
-
-Response (200 OK):
-
-```json
-[
-  {
-    "_id": "60d21b4667d0d8992e610c86",
-    "username": "citypharmacy",
-    "firstName": "City",
-    "lastName": "Pharmacy",
-    "pharmacyName": "City Pharmacy Inc.",
-    "licenseNumber": "PHR789012"
-  },
-  {
-    "_id": "60d21b4667d0d8992e610c87",
-    "username": "healthpharmacy",
-    "firstName": "Health",
-    "lastName": "Pharmacy",
-    "pharmacyName": "Health First Pharmacy",
-    "licenseNumber": "PHR789013"
-  }
-]
-```
-
-##### Start or Get a Conversation with a Pharmacy (Patient Only)
-
-```http
-GET /api/chat/conversation/pharmacy/:pharmacyId
-```
-
-Example cURL:
-
-```bash
-curl -X GET http://localhost:3000/api/chat/conversation/pharmacy/60d21b4667d0d8992e610c86 \
-  -H "Authorization: Bearer PATIENT_JWT_TOKEN"
-```
-
-Headers:
-
-```
-Authorization: Bearer <patient_jwt_token>
-```
-
-Response (200 OK):
-
-```json
-{
-  "_id": "60d21b4667d0d8992e610c88",
-  "patient": {
-    "_id": "60d21b4667d0d8992e610c85",
-    "username": "johndoe",
-    "firstName": "John",
-    "lastName": "Doe"
-  },
-  "pharmacy": {
-    "_id": "60d21b4667d0d8992e610c86",
-    "username": "citypharmacy",
-    "firstName": "City",
-    "lastName": "Pharmacy",
-    "pharmacyName": "City Pharmacy Inc."
-  },
-  "lastMessage": "",
-  "lastMessageDate": "2023-01-01T12:00:00.000Z",
-  "unreadPatient": 0,
-  "unreadPharmacy": 0,
-  "messages": [],
-  "createdAt": "2023-01-01T12:00:00.000Z",
-  "updatedAt": "2023-01-01T12:00:00.000Z"
-}
-```
-
-##### Get All Conversations
-
-```http
-GET /api/chat/conversations
-```
-
-Example cURL:
-
-```bash
-curl -X GET http://localhost:3000/api/chat/conversations \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN"
-```
-
-Headers:
-
-```
-Authorization: Bearer <jwt_token>
-```
-
-Response (200 OK):
-
-```json
-[
-  {
-    "_id": "60d21b4667d0d8992e610c88",
-    "patient": {
-      "_id": "60d21b4667d0d8992e610c85",
-      "username": "johndoe",
-      "firstName": "John",
-      "lastName": "Doe"
-    },
-    "pharmacy": {
-      "_id": "60d21b4667d0d8992e610c86",
-      "username": "citypharmacy",
-      "firstName": "City",
-      "lastName": "Pharmacy",
-      "pharmacyName": "City Pharmacy Inc."
-    },
-    "lastMessage": "Hello, I have a question about my prescription.",
-    "lastMessageDate": "2023-01-01T12:30:00.000Z",
-    "unreadPatient": 1,
-    "unreadPharmacy": 0,
-    "messages": ["60d21b4667d0d8992e610c89"],
-    "createdAt": "2023-01-01T12:00:00.000Z",
-    "updatedAt": "2023-01-01T12:30:00.000Z"
-  }
-]
-```
-
-##### Get Messages in a Conversation
-
-```http
-GET /api/chat/conversation/:conversationId/messages?page=1&limit=20
-```
-
-Example cURL:
-
-```bash
-curl -X GET "http://localhost:3000/api/chat/conversation/60d21b4667d0d8992e610c88/messages?page=1&limit=20" \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN"
-```
-
-Headers:
-
-```
-Authorization: Bearer <jwt_token>
-```
-
-Query Parameters:
-
-- `page` (optional): Page number (default: 1)
-- `limit` (optional): Number of messages per page (default: 20)
-
-Response (200 OK):
-
-```json
-{
-  "messages": [
-    {
-      "_id": "60d21b4667d0d8992e610c89",
-      "sender": {
-        "_id": "60d21b4667d0d8992e610c85",
-        "username": "johndoe",
-        "firstName": "John",
-        "lastName": "Doe",
-        "userType": "patient"
-      },
-      "receiver": {
-        "_id": "60d21b4667d0d8992e610c86",
-        "username": "citypharmacy",
-        "firstName": "City",
-        "lastName": "Pharmacy",
-        "userType": "pharmacy"
-      },
-      "message": "Hello, I have a question about my prescription.",
-      "read": false,
-      "createdAt": "2023-01-01T12:30:00.000Z"
-    }
-  ],
-  "pagination": {
-    "total": 1,
-    "page": 1,
-    "limit": 20,
-    "pages": 1
-  }
-}
-```
-
-##### Send a Message in a Conversation
-
-```http
-POST /api/chat/conversation/:conversationId/message
-```
-
-Example cURL:
-
-```bash
-curl -X POST http://localhost:3000/api/chat/conversation/60d21b4667d0d8992e610c88/message \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  -d '{
-    "message": "Hello, I have a question about my prescription."
-  }'
-```
-
-Headers:
-
-```
-Authorization: Bearer <jwt_token>
-```
-
-Request Body:
-
-```json
-{
-  "message": "Hello, I have a question about my prescription."
-}
-```
-
-Response (201 Created):
-
-```json
-{
-  "_id": "60d21b4667d0d8992e610c89",
-  "sender": {
-    "_id": "60d21b4667d0d8992e610c85",
-    "username": "johndoe",
-    "firstName": "John",
-    "lastName": "Doe",
-    "userType": "patient"
-  },
-  "receiver": {
-    "_id": "60d21b4667d0d8992e610c86",
-    "username": "citypharmacy",
-    "firstName": "City",
-    "lastName": "Pharmacy",
-    "userType": "pharmacy"
-  },
-  "message": "Hello, I have a question about my prescription.",
-  "read": false,
-  "createdAt": "2023-01-01T12:30:00.000Z",
-  "receiverOnline": true
-}
-```
-
-##### Mark Messages as Read in a Conversation
-
-```http
-PUT /api/chat/conversation/:conversationId/read
-```
-
-Example cURL:
-
-```bash
-curl -X PUT http://localhost:3000/api/chat/conversation/60d21b4667d0d8992e610c88/read \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN"
-```
-
-Headers:
-
-```
-Authorization: Bearer <jwt_token>
-```
-
-Response (200 OK):
-
-```json
-{
-  "message": "Messages marked as read"
-}
-```
-
-##### Get Online Status for Users
-
-```http
-POST /api/chat/online-status
-```
-
-Example cURL:
-
-```bash
-curl -X POST http://localhost:3000/api/chat/online-status \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  -d '{
-    "userIds": ["60d21b4667d0d8992e610c85", "60d21b4667d0d8992e610c86"]
-  }'
-```
-
-Headers:
-
-```
-Authorization: Bearer <jwt_token>
-```
-
-Request Body:
-
-```json
-{
-  "userIds": ["60d21b4667d0d8992e610c85", "60d21b4667d0d8992e610c86"]
-}
-```
-
-Response (200 OK):
-
-```json
-{
-  "onlineStatus": {
-    "60d21b4667d0d8992e610c85": true,
-    "60d21b4667d0d8992e610c86": false
-  }
-}
-```
-
-#### WebSocket Integration (Socket.IO)
-
-In addition to the REST API, Med-Track provides real-time messaging via WebSockets using Socket.IO. This enables:
-
-- Instant message delivery without polling
-- Online status indicators
-- Typing indicators
-- Read receipts in real-time
-
-##### Connection to Socket.IO
-
-To connect to the WebSocket server, use a Socket.IO client and include your JWT token for authentication:
-
-```javascript
-// Example using the Socket.IO JavaScript client
-const socket = io("http://localhost:3000", {
-  auth: {
-    token: "YOUR_JWT_TOKEN",
-  },
-});
-
-// Handle connection errors
-socket.on("connect_error", (error) => {
-  console.error("Connection error:", error.message);
-});
-```
-
-##### Joining a Conversation
-
-To receive real-time updates for a specific conversation, join the conversation room:
-
-```javascript
-socket.emit("join_conversation", "CONVERSATION_ID");
-```
-
-##### Listening for New Messages
-
-To receive new messages in real-time:
-
-```javascript
-socket.on("new_message", (message) => {
-  console.log("New message received:", message);
-  // Update your UI with the new message
-});
-```
-
-##### Listening for Message Notifications
-
-To receive notifications of new messages when not in the specific conversation:
-
-```javascript
-socket.on("new_message_notification", (data) => {
-  console.log(
-    `New message in conversation ${data.conversationId}:`,
-    data.message
-  );
-  // Update your UI to show a notification
-});
-```
-
-##### Listening for Read Receipts
-
-To be notified when your messages are read:
-
-```javascript
-socket.on("messages_read", (data) => {
-  console.log(
-    `Messages read in conversation ${data.conversationId} by user ${data.userId}`
-  );
-  // Update your UI to show read receipts
-});
-```
-
-##### Leaving a Conversation
-
-When leaving a conversation view:
+## API Endpoints
 
-```javascript
-socket.emit("leave_conversation", "CONVERSATION_ID");
-```
-
-### Admin Endpoints
-
-#### Create Pharmacy Account (Admin only)
-
-```http
-POST /api/admin/pharmacies
-```
-
-Example cURL:
-
-```bash
-curl -X POST http://localhost:3000/api/admin/pharmacies \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer ADMIN_JWT_TOKEN" \
-  -d '{
-    "username": "citypharmacy",
-    "email": "contact@citypharmacy.com",
-    "password": "securepassword",
-    "firstName": "City",
-    "lastName": "Pharmacy",
-    "phoneNumber": "5551234567",
-    "address": "789 Market St, Metropolis, US",
-    "licenseNumber": "PHR789012",
-    "pharmacyName": "City Pharmacy Inc."
-  }'
-```
-
-Headers:
-
-```
-Authorization: Bearer <admin_jwt_token>
-```
-
-Request Body:
-
-```json
-{
-  "username": "citypharmacy",
-  "email": "contact@citypharmacy.com",
-  "password": "securepassword",
-  "firstName": "City",
-  "lastName": "Pharmacy",
-  "phoneNumber": "5551234567",
-  "address": "789 Market St, Metropolis, US",
-  "licenseNumber": "PHR789012",
-  "pharmacyName": "City Pharmacy Inc."
-}
-```
-
-Response (201 Created):
-
-```json
-{
-  "message": "Pharmacy account created successfully",
-  "pharmacy": {
-    // Pharmacy user object without password
-  }
-}
-```
-
-#### Create Admin Account (Admin only)
-
-```http
-POST /api/admin/admins
-```
-
-Example cURL:
-
-```bash
-curl -X POST http://localhost:3000/api/admin/admins \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer ADMIN_JWT_TOKEN" \
-  -d '{
-    "username": "newadmin",
-    "email": "newadmin@example.com",
-    "password": "admin_password",
-    "firstName": "New",
-    "lastName": "Admin",
-    "phoneNumber": "5559876543",
-    "address": "456 Admin St, Admin City, US"
-  }'
-```
-
-Headers:
-
-```
-Authorization: Bearer <admin_jwt_token>
-```
-
-Request Body:
-
-```json
-{
-  "username": "newadmin",
-  "email": "newadmin@example.com",
-  "password": "admin_password",
-  "firstName": "New",
-  "lastName": "Admin",
-  "phoneNumber": "5559876543",
-  "address": "456 Admin St, Admin City, US"
-}
-```
-
-Response (201 Created):
-
-```json
-{
-  "message": "Admin account created successfully",
-  "admin": {
-    // Admin user object without password
-  }
-}
-```
-
-### Drug Endpoints
+### Authentication
 
-#### Get All Drugs
+- `POST /api/auth/register` - Register a new patient
+- `POST /api/auth/login` - Login for patients and pharmacies
+- `POST /api/auth/change-password` - Change user password (requires authentication)
 
-```http
-GET /api/drugs?limit=10&skip=0
-```
-
-Example cURL:
-
-```bash
-curl -X GET "http://localhost:3000/api/drugs?limit=10&skip=0" \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN"
-```
-
-Query Parameters:
-
-- `limit` (optional): Number of results per page (default: 10)
-- `skip` (optional): Number of results to skip (default: 0)
-
-Headers (for protected routes):
-
-```
-Authorization: Bearer <jwt_token>
-```
-
-#### Search Drugs by Brand Name
-
-```http
-GET /api/drugs/search?brandName=BRAND_NAME
-```
-
-Example cURL:
+### Pharmacy Registration and Verification
 
-```bash
-curl -X GET "http://localhost:3000/api/drugs/search?brandName=Aspirin" \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN"
-```
-
-Query Parameters:
-
-- `brandName` (required): Brand name of the drug to search for
-
-Headers (for protected routes):
-
-```
-Authorization: Bearer <jwt_token>
-```
+- `POST /api/auth/register` - Register a new pharmacy (with userType=pharmacy)
+- `GET /api/admin/pharmacies/pending` - Admin only: Get all pending pharmacy accounts
+- `PUT /api/admin/pharmacies/:pharmacyId/verify` - Admin only: Approve or reject a pharmacy
 
-#### Get Drug by ID
+### Medications
 
-```http
-GET /api/drugs/:id
-```
+- `GET /api/medications` - Get patient's medications
+- `POST /api/medications` - Add a new medication
+- `GET /api/medications/:id` - Get a specific medication
+- `PUT /api/medications/:id` - Update a medication
+- `DELETE /api/medications/:id` - Delete a medication
+- `PATCH /api/medications/:medicationId/reminders/:reminderId` - Update reminder status
+- `GET /api/medications/upcoming` - Get upcoming reminders
 
-Example cURL:
+### Testing Endpoints
 
-```bash
-curl -X GET http://localhost:3000/api/drugs/12345 \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN"
-```
+- `POST /api/medications/:medicationId/test-reminder` - Trigger a test reminder for a medication
+- `POST /api/medications/:medicationId/reminders/:reminderId/test` - Trigger a test for a specific reminder
 
-Path Parameters:
+### Drugs
 
-- `id` (required): Unique identifier of the drug
+- `GET /api/drugs` - Get available drugs (paginated)
+- `GET /api/drugs/search` - Search drugs by brand name
+- `GET /api/drugs/:id` - Get drug details by ID
 
-Headers (for protected routes):
+### Users
 
-```
-Authorization: Bearer <jwt_token>
-```
+- `GET /api/users/profile` - Get user profile
+- `PUT /api/users/profile` - Update user profile
 
-## 🔒 Authentication and Authorization
+### Chat
 
-The API uses JWT (JSON Web Token) for authentication. Protected routes require a valid JWT token in the Authorization header:
+- `GET /api/chat/conversations` - Get user's conversations
+- `POST /api/chat/conversations` - Create a new conversation
+- `GET /api/chat/conversations/:id/messages` - Get messages for a conversation
+- `POST /api/chat/conversations/:id/messages` - Send a message
+- `GET /api/chat/pharmacies` - Patient only: List all verified pharmacies
+- `GET /api/chat/status/:userId` - Check if a user is online
 
-```
-Authorization: Bearer <your_jwt_token>
-```
+### Admin
 
-### User Types and Access Control
+- `POST /api/admin/pharmacies` - Create a pharmacy account (automatically verified)
+- `POST /api/admin/admins` - Create an admin account
+- `GET /api/admin/pharmacies/pending` - Get pending pharmacy verifications
+- `PUT /api/admin/pharmacies/:pharmacyId/verify` - Approve or reject a pharmacy
 
-The system supports three types of users with different permissions:
+## Pharmacy Registration and Verification System
 
-1. **Patient**
+The Med-Track platform includes a pharmacy verification system that ensures only legitimate pharmacies can interact with patients:
 
-   - Can view and update their own profile
-   - Can access drug information
-   - Can only be created through public registration
-   - Can initiate and participate in chat conversations with pharmacies
-   - Can view a list of pharmacy users to contact
+### Registration Flow
 
-2. **Pharmacy**
+1. **Pharmacy Self-Registration**:
 
-   - Can view and update their own profile
-   - Can access drug information
-   - Can only be created by an admin
-   - Can participate in chat conversations with patients
-   - Can respond to any patient messages
+   - Pharmacies can register through the standard registration endpoint
+   - Must include `userType: "pharmacy"`, `licenseNumber`, and `pharmacyName`
+   - New pharmacy accounts are created with `isVerified: false`
 
-3. **Admin**
-   - Has full access to the system
-   - Can create pharmacy accounts and other admin accounts
-   - Can access all endpoints
-   - Can only be created by another admin
+2. **Admin Verification**:
 
-### Creating the First Admin User
+   - Administrators can view pending pharmacies via `GET /api/admin/pharmacies/pending`
+   - Approve or reject pharmacies with `PUT /api/admin/pharmacies/:pharmacyId/verify`
+   - Set `approve: true` to verify, or `approve: false` to reject
 
-For the initial system setup, you'll need to create the first admin user manually. You can temporarily modify the registerHandler in src/controller/auth.ts to allow creating an admin for the first time, or insert directly into the MongoDB database.
+3. **Pharmacy Login**:
+   - Pharmacy users receive verification status with their login token
+   - Unverified pharmacies receive a notification that their account is pending approval
 
-## 🛠️ Tech Stack
+### Access Control
 
-- Node.js
-- Express.js
-- TypeScript
-- MongoDB (for user data)
-- Axios (for FDA API integration)
-- JWT for authentication
+- **Unverified Pharmacies**:
 
-## 📝 Project Structure
+  - Can log in to their account and view their profile
+  - Cannot message patients or appear in pharmacy listings
+  - Receive clear messages about their verification status
 
-```
-backend/
-├── src/
-│   ├── config/         # Configuration files
-│   ├── controller/     # Route controllers
-│   ├── middleware/     # Custom middleware
-│   ├── models/         # Database models
-│   ├── routes/         # API routes
-│   ├── types/          # TypeScript type definitions
-│   └── index.ts        # Application entry point
-├── .env                # Environment variables
-├── package.json        # Project dependencies
-└── tsconfig.json       # TypeScript configuration
-```
+- **Verified Pharmacies**:
 
-## 🤝 Contributing
+  - Listed in the patient's pharmacy search
+  - Can participate in conversations with patients
+  - Have full access to pharmacy features
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+- **Admin Tools**:
+  - Admins can create pre-verified pharmacy accounts
+  - View and manage pending verification requests
+  - Approve or reject pharmacy registrations
 
-## 📄 License
+## Reminder System
+
+The system uses a combination of MongoDB and Socket.IO to handle medication reminders:
+
+1. When a medication is added, reminder times are generated based on the frequency
+2. A cron job runs every minute to check for upcoming reminders
+3. When it's time for a medication, online users receive a real-time notification
+4. Users can mark reminders as taken, snooze them, or mark as missed
+
+### Testing Reminders
+
+For development and testing purposes, you can manually trigger reminders without waiting for scheduled times:
+
+- To test a medication reminder with current time: `POST /api/medications/:medicationId/test-reminder`
+- To test a specific reminder: `POST /api/medications/:medicationId/reminders/:reminderId/test`
+
+Note: Test reminders will only be sent if the patient is currently online (connected via Socket.IO).
+
+### Step-by-Step Testing Guide
+
+1. **Prerequisites**:
+
+   - Make sure you have a patient user account
+   - Add at least one medication with reminders to your account
+   - Ensure your frontend is connected to Socket.IO
+
+2. **Test Setup**:
+
+   - Log in as a patient user to get a JWT token
+   - Connect to Socket.IO with the token (on the frontend)
+   - Get your medication IDs by calling `GET /api/medications`
+
+3. **Testing Generic Reminder**:
+
+   ```bash
+   curl -X POST http://localhost:3000/api/medications/YOUR_MEDICATION_ID/test-reminder \
+     -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+     -H "Content-Type: application/json"
+   ```
+
+4. **Testing Specific Reminder**:
+
+   - Get reminder IDs by calling `GET /api/medications/YOUR_MEDICATION_ID`
+   - Then send:
+
+   ```bash
+   curl -X POST http://localhost:3000/api/medications/YOUR_MEDICATION_ID/reminders/YOUR_REMINDER_ID/test \
+     -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+     -H "Content-Type: application/json"
+   ```
+
+5. **Expected Response**:
+
+   ```json
+   {
+     "success": true,
+     "message": "Test reminder sent to patient 60d21b4667d0d8992e610c85 for medication Aspirin",
+     "data": {
+       "id": "60e32c8f9b7543001c123456",
+       "medicationId": "60e32c8f9b7543001c789012",
+       "medicationName": "Aspirin",
+       "genericName": "Acetylsalicylic acid",
+       "dosage": "81mg",
+       "time": "2023-06-15T10:30:00.000Z",
+       "instructions": "Take with food",
+       "isTestReminder": true
+     }
+   }
+   ```
+
+6. **Listening on the Frontend**:
+
+   ```javascript
+   // Connect to Socket.IO
+   const socket = io("http://localhost:3000", {
+     auth: { token: "YOUR_JWT_TOKEN" },
+   });
+
+   // Listen for medication reminders
+   socket.on("medication_reminder", (reminder) => {
+     console.log("Received medication reminder:", reminder);
+     // Show notification to the user
+     if (reminder.isTestReminder) {
+       console.log("This is a test reminder");
+     }
+
+     // Handle the reminder (show notification, etc.)
+     showMedicationReminder(reminder);
+   });
+
+   // Function to respond to the reminder
+   function respondToReminder(medicationId, reminderId, action) {
+     socket.emit("reminder_response", {
+       medicationId,
+       reminderId,
+       action, // "taken", "snooze", or "missed"
+       snoozeMinutes: action === "snooze" ? 15 : undefined, // Only for snooze
+     });
+   }
+   ```
+
+7. **Troubleshooting**:
+   - If you get a 403 error, make sure you're using a patient user's token
+   - If you get "Patient is not online" message, ensure Socket.IO connection is established
+   - Check the server console for any error messages
+
+## Caching System
+
+The application implements an efficient caching system for drug-related API calls to reduce load on the FDA API and improve response times:
+
+- **In-memory Cache**: Using node-cache for fast, temporary storage
+- **Tiered TTL Strategy**: Different TTLs for different types of data:
+  - All drugs list: 1 hour cache
+  - Drug search results: 2 hours cache
+  - Individual drug details: 6 hours cache
+- **Automatic Cache Invalidation**: TTL-based expiration
+
+## Real-time Features
+
+The Socket.IO integration provides:
+
+- Real-time medication reminders
+- Instant reminder status updates
+- Live chat between patients and pharmacies
+
+## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🙏 Acknowledgments
-
-- FDA OpenFDA API for providing drug information
-- Express.js community for the excellent web framework
-- TypeScript team for the type safety

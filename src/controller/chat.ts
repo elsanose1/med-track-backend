@@ -97,6 +97,18 @@ export async function sendMessage(req: AuthenticatedRequest, res: Response) {
       });
     }
 
+    // If the sender is a pharmacy, verify they're approved
+    if (
+      isPharmacy &&
+      req.user.userType === UserType.PHARMACY &&
+      !req.user.isVerified
+    ) {
+      return res.status(403).json({
+        message:
+          "Your pharmacy account is pending verification by an administrator.",
+      });
+    }
+
     // Determine receiver
     const receiverId = isPatient ? conversation.pharmacy : conversation.patient;
 
@@ -312,7 +324,7 @@ export async function getConversations(
 }
 
 /**
- * List all pharmacies for a patient to start a conversation with
+ * List all verified pharmacies for a patient to start a conversation with
  */
 export async function listPharmacies(req: AuthenticatedRequest, res: Response) {
   try {
@@ -323,8 +335,11 @@ export async function listPharmacies(req: AuthenticatedRequest, res: Response) {
       });
     }
 
-    // Get all pharmacy users
-    const pharmacies = await User.find({ userType: UserType.PHARMACY })
+    // Get all verified pharmacy users
+    const pharmacies = await User.find({
+      userType: UserType.PHARMACY,
+      isVerified: true, // Only show verified pharmacies
+    })
       .select("username firstName lastName pharmacyName licenseNumber")
       .sort({ pharmacyName: 1 });
 

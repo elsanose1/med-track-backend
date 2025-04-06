@@ -21,6 +21,36 @@ export async function loginHandler(req: Request, res: Response) {
       return;
     }
 
+    // For pharmacy users, check if they're verified
+    if (user.userType === UserType.PHARMACY) {
+      const isVerified = user.isVerified || false;
+      // Still allow login but include verification status in token
+      const token = jwt.sign(
+        {
+          id: user._id,
+          email: user.email,
+          username: user.username,
+          userType: user.userType,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          isVerified, // Include verification status
+        },
+        jwtSecret,
+        {
+          expiresIn: "3h",
+        }
+      );
+
+      return res.json({
+        token,
+        isVerified,
+        message: isVerified
+          ? "Login successful"
+          : "Login successful. Your account is pending verification by an administrator.",
+      });
+    }
+
+    // For non-pharmacy users, proceed as normal
     const token = jwt.sign(
       {
         id: user._id,
@@ -59,15 +89,59 @@ export async function registerHandler(req: Request, res: Response) {
   } = req.body;
 
   try {
-    // Prevent creation of admin or pharmacy users through public registration
-    if (userType === UserType.ADMIN || userType === UserType.PHARMACY) {
+    // Prevent creation of admin users through public registration
+    if (userType === UserType.ADMIN) {
       return res.status(403).json({
         message:
-          "Not authorized to create this type of account. Only patient accounts can be created through registration.",
+          "Not authorized to create this type of account. Admin accounts can only be created by other admins.",
       });
     }
 
-    // Force userType to be patient for public registration
+    // Check if username or email already exists
+    const existingUser = await User.findOne({
+      $or: [{ username }, { email }],
+    });
+
+    if (existingUser) {
+      return res.status(400).json({
+        message: "Username or email already exists",
+      });
+    }
+
+    // If registering as a pharmacy
+    if (userType === UserType.PHARMACY) {
+      // Validate pharmacy-specific required fields
+      if (!licenseNumber || !pharmacyName) {
+        return res.status(400).json({
+          message:
+            "License number and pharmacy name are required for pharmacy registration.",
+        });
+      }
+
+      // Create pharmacy account (unverified)
+      const pharmacy = new User({
+        username,
+        email,
+        password,
+        firstName,
+        lastName,
+        dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
+        userType: UserType.PHARMACY,
+        phoneNumber,
+        address,
+        licenseNumber,
+        pharmacyName,
+        isVerified: false, // Default to unverified
+      });
+
+      await pharmacy.save();
+      return res.status(201).json({
+        message:
+          "Pharmacy registered successfully. Your account is pending verification by an administrator.",
+      });
+    }
+
+    // For patient registration
     const user = new User({
       username,
       email,
@@ -75,7 +149,7 @@ export async function registerHandler(req: Request, res: Response) {
       firstName,
       lastName,
       dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
-      userType: UserType.PATIENT, // Force userType to PATIENT
+      userType: UserType.PATIENT,
       phoneNumber,
       address,
       medicalHistory,
@@ -89,35 +163,40 @@ export async function registerHandler(req: Request, res: Response) {
   }
 }
 
+/**
+ * Handler for changing user password
+ */
 export async function changePasswordHandler(
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response
-): Promise<void> {
-  const userId = (req as AuthenticatedRequest).user.id;
+) {
   const { currentPassword, newPassword } = req.body;
+  const userId = req.user.id;
 
   if (!currentPassword || !newPassword) {
-    res.status(400).json({ message: "Current and new password are required" });
-    return;
+    return res.status(400).json({
+      message: "Current password and new password are required",
+    });
   }
 
   try {
     const user = await User.findById(userId);
     if (!user) {
-      res.status(404).json({ message: "User not found" });
-      return;
+      return res.status(404).json({ message: "User not found" });
     }
 
+    // Verify current password
     const isMatch = await user.comparePassword(currentPassword);
     if (!isMatch) {
-      res.status(400).json({ message: "Current password is incorrect" });
-      return;
+      return res.status(400).json({ message: "Current password is incorrect" });
     }
 
+    // Set and save new password
     user.password = newPassword;
     await user.save();
-    res.json({ message: "Password updated successfully" });
+
+    res.json({ message: "Password changed successfully" });
   } catch (err) {
-    res.status(500).json({ message: "Error updating password", error: err });
+    res.status(500).json({ message: "Error changing password", error: err });
   }
 }

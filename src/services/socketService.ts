@@ -4,6 +4,11 @@ import jwt from "jsonwebtoken";
 import { UserType } from "../models/User";
 import { ChatMessage, ChatConversation } from "../models/Chat";
 import User from "../models/User";
+import {
+  markReminderAsCompleted,
+  markReminderAsMissed,
+  snoozeReminder,
+} from "./reminderService";
 
 // Interface for socket user data
 interface SocketUser {
@@ -90,6 +95,52 @@ export function initializeSocketIO(httpServer: HttpServer): SocketIOServer {
     socket.on("leave_conversation", (conversationId) => {
       socket.leave(`conversation:${conversationId}`);
       console.log(`User ${userId} left conversation ${conversationId}`);
+    });
+
+    // Handle medication reminder responses
+    socket.on("reminder_response", async (data) => {
+      const { medicationId, reminderId, action, snoozeMinutes } = data;
+
+      try {
+        switch (action) {
+          case "taken":
+            await markReminderAsCompleted(medicationId, reminderId);
+            socket.emit("reminder_update", {
+              medicationId,
+              reminderId,
+              status: "completed",
+            });
+            break;
+
+          case "snooze":
+            await snoozeReminder(medicationId, reminderId, snoozeMinutes || 15);
+            socket.emit("reminder_update", {
+              medicationId,
+              reminderId,
+              status: "snoozed",
+            });
+            break;
+
+          case "missed":
+            await markReminderAsMissed(medicationId, reminderId);
+            socket.emit("reminder_update", {
+              medicationId,
+              reminderId,
+              status: "missed",
+            });
+            break;
+
+          default:
+            console.error(`Unknown reminder action: ${action}`);
+        }
+      } catch (error) {
+        console.error("Error handling reminder response:", error);
+        socket.emit("reminder_error", {
+          medicationId,
+          reminderId,
+          error: "Failed to process reminder response",
+        });
+      }
     });
 
     // Handle disconnect

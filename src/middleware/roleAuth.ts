@@ -69,3 +69,30 @@ export const isPatient = (
   }
   next();
 };
+
+/**
+ * Middleware to check if the pharmacy user is verified by an admin
+ * This should be used after isPharmacy middleware
+ */
+export const isVerifiedPharmacy = (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  // First check if user is a pharmacy
+  if (req.user.userType !== UserType.PHARMACY) {
+    return res.status(403).json({
+      message: "Pharmacy access required",
+    });
+  }
+
+  // Then check if the pharmacy is verified
+  if (!req.user.isVerified) {
+    return res.status(403).json({
+      message:
+        "Your pharmacy account is pending verification by an administrator.",
+    });
+  }
+
+  next();
+};

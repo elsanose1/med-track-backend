@@ -24,6 +24,7 @@ interface IUser extends Document {
   allergies?: string[]; // For patients
   licenseNumber?: string; // For pharmacies
   pharmacyName?: string; // For pharmacies
+  isVerified?: boolean; // For pharmacies - to track admin verification status
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
@@ -49,6 +50,7 @@ const UserSchema: Schema<IUser> = new Schema(
     allergies: [{ type: String }],
     licenseNumber: { type: String },
     pharmacyName: { type: String },
+    isVerified: { type: Boolean, default: false }, // Default to false, requiring admin verification
   },
   {
     timestamps: true,

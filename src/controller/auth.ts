@@ -154,6 +154,7 @@ export async function registerHandler(req: Request, res: Response) {
       address,
       medicalHistory,
       allergies,
+      isVerified: true, // patient is verified by default
     });
 
     await user.save();

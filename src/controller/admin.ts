@@ -254,9 +254,10 @@ export async function getAllPharmacies(
   res: Response
 ) {
   try {
-    const pharmacies = await User.find({ userType: UserType.PHARMACY }).select(
-      "-password"
-    );
+    const pharmacies = await User.find({
+      userType: UserType.PHARMACY,
+      isVerified: true,
+    }).select("-password");
     res.json(pharmacies);
   } catch (err) {
     res.status(500).json({ message: "Error fetching pharmacies", error: err });

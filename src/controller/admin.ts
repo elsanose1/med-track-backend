@@ -343,3 +343,52 @@ export async function getAllAdminsCount(
       .json({ message: "Error fetching admins count", error: err });
   }
 }
+
+/**
+ * deverify a pharmacy account (set isVerified to false)
+ */
+export async function deverifyPharmacy(
+  req: AuthenticatedRequest,
+  res: Response
+) {
+  try {
+    const { pharmacyId } = req.params;
+
+    // Find the pharmacy user
+    const pharmacy = await User.findOne({
+      _id: pharmacyId,
+      userType: UserType.PHARMACY,
+    });
+
+    if (!pharmacy) {
+      return res.status(404).json({
+        message: "Pharmacy not found",
+      });
+    }
+
+    if (!pharmacy.isVerified) {
+      return res.status(400).json({
+        message: "Pharmacy is already unverified",
+      });
+    }
+
+    pharmacy.isVerified = false;
+    await pharmacy.save();
+
+    res.json({
+      message: "Pharmacy account deverified successfully",
+      pharmacy: {
+        id: pharmacy._id,
+        username: pharmacy.username,
+        email: pharmacy.email,
+        pharmacyName: pharmacy.pharmacyName,
+        isVerified: pharmacy.isVerified,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({
+      message: "Error deverifying pharmacy",
+      error: err,
+    });
+  }
+}

@@ -4,6 +4,7 @@ import {
   createAdminAccount,
   getPendingPharmacies,
   verifyPharmacy,
+  deverifyPharmacy,
   getAllPatients,
   getAllPharmacies,
   getAllAdmins,
@@ -37,6 +38,12 @@ router.get(
 router.put(
   "/pharmacies/:pharmacyId/verify",
   verifyPharmacy as unknown as RequestHandler
+);
+
+// Deverify a pharmacy account (admin only)
+router.put(
+  "/pharmacies/:pharmacyId/deverify",
+  deverifyPharmacy as unknown as RequestHandler
 );
 
 // Retrieve all patients (admin only)

@@ -9,6 +9,8 @@ import {
   markReminderAsMissed,
   snoozeReminder,
 } from "./reminderService";
+import axios from "axios";
+import { FDA_API_BASE_URL, API_KEY } from "../controller/drugController";
 
 // Interface for socket user data
 interface SocketUser {
@@ -93,14 +95,50 @@ export function initializeSocketIO(httpServer: HttpServer): SocketIOServer {
 
     // --- POPUP NOTIFICATION EVENTS ---
     // Patient triggers a popup to all pharmacists
-    socket.on("patient_popup_request", (popupData) => {
-      const pharmacistSocketIds = getPharmacistSocketIds();
-      pharmacistSocketIds.forEach((socketId) => {
-        io.to(socketId).emit("show_popup", {
-          patientId: socket.data.user.id,
-          ...popupData,
+    socket.on("patient_popup_request", async (popupData) => {
+      try {
+        // Fetch user info
+        const user = await User.findById(popupData.userId).select(
+          "firstName lastName phoneNumber"
+        );
+        let userName = "Unknown";
+        let userPhone = "Unknown";
+        if (user) {
+          userName = `${user.firstName} ${user.lastName}`;
+          userPhone = user.phoneNumber || "Unknown";
+        }
+
+        // Fetch drug info from FDA API
+        let drugName = "Unknown";
+        try {
+          const response = await axios.get(FDA_API_BASE_URL, {
+            params: {
+              search: `id:\"${popupData.drugId}\"`,
+              api_key: API_KEY,
+            },
+          });
+          const data = response.data as any;
+          if (data.results && data.results.length > 0) {
+            drugName = data.results[0].openfda.brand_name?.[0] || "Unknown";
+          }
+        } catch (err) {
+          console.error("Error fetching drug info:", err);
+        }
+
+        const pharmacistSocketIds = getPharmacistSocketIds();
+        pharmacistSocketIds.forEach((socketId) => {
+          io.to(socketId).emit("show_popup", {
+            patientId: socket.data.user.id,
+            userName,
+            userPhone,
+            drugId: popupData.drugId,
+            drugName,
+            note: popupData.note,
+          });
         });
-      });
+      } catch (err) {
+        console.error("Error processing patient_popup_request:", err);
+      }
     });
 
     // Patient cancels popup request

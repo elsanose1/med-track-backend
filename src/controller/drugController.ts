@@ -2,8 +2,8 @@ import { Request, Response } from "express";
 import axios from "axios";
 import { FDALabelResponse, PatientDrugInfo } from "../types/FDALabel";
 
-const FDA_API_BASE_URL = "https://api.fda.gov/drug/label.json";
-const API_KEY = "ORfbqYoAbiSRfbwElWDdtsSOQMtIKsYIAm3XEDmv";
+export const FDA_API_BASE_URL = "https://api.fda.gov/drug/label.json";
+export const API_KEY = "ORfbqYoAbiSRfbwElWDdtsSOQMtIKsYIAm3XEDmv";
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 2000; // 2 seconds
 

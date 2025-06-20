@@ -110,6 +110,8 @@ export function initializeSocketIO(httpServer: HttpServer): SocketIOServer {
 
         // Fetch drug info from FDA API
         let drugName = "Unknown";
+        console.log("popup data : ", popupData);
+
         try {
           const response = await axios.get(FDA_API_BASE_URL, {
             params: {

@@ -63,14 +63,14 @@ export const cancelByPatient = async (req: Request, res: Response) => {
     const { id } = req.params;
     const { patientID } = req.body;
     const request = await ApprovedDrugRequest.findOne({ _id: id, patientID });
-    if (!request)
-      return res
-        .status(404)
-        .json({ error: "Request not found or not authorized" });
-    if (request.status !== "preparing")
-      return res
-        .status(400)
-        .json({ error: "Can only cancel if status is preparing" });
+    if (!request) {
+      res.status(404).json({ error: "Request not found or not authorized" });
+      return;
+    }
+    if (request.status !== "preparing") {
+      res.status(400).json({ error: "Can only cancel if status is preparing" });
+      return;
+    }
     request.status = "canceled ";
     await request.save();
     res.json(request);
@@ -85,17 +85,18 @@ export const cancelByPharmacy = async (req: Request, res: Response) => {
     const { id } = req.params;
     const { pharmacyID } = req.body;
     const request = await ApprovedDrugRequest.findOne({ _id: id, pharmacyID });
-    if (!request)
-      return res
-        .status(404)
-        .json({ error: "Request not found or not authorized" });
+    if (!request) {
+      res.status(404).json({ error: "Request not found or not authorized" });
+      return;
+    }
     if (
       request.status !== "preparing" &&
       request.status !== "out_for_delivery"
     ) {
-      return res.status(400).json({
+      res.status(400).json({
         error: "Can only cancel if status is preparing or out_for_delivery",
       });
+      return;
     }
     request.status = "canceled ";
     await request.save();
@@ -111,14 +112,15 @@ export const markOutForDelivery = async (req: Request, res: Response) => {
     const { id } = req.params;
     const { pharmacyID } = req.body;
     const request = await ApprovedDrugRequest.findOne({ _id: id, pharmacyID });
-    if (!request)
-      return res
-        .status(404)
-        .json({ error: "Request not found or not authorized" });
+    if (!request) {
+      res.status(404).json({ error: "Request not found or not authorized" });
+      return;
+    }
     if (request.status !== "preparing") {
-      return res.status(400).json({
+      res.status(400).json({
         error: "Can only mark as out_for_delivery if status is preparing",
       });
+      return;
     }
     request.status = "out_for_delivery";
     await request.save();
@@ -134,14 +136,15 @@ export const markDelivered = async (req: Request, res: Response) => {
     const { id } = req.params;
     const { pharmacyID } = req.body;
     const request = await ApprovedDrugRequest.findOne({ _id: id, pharmacyID });
-    if (!request)
-      return res
-        .status(404)
-        .json({ error: "Request not found or not authorized" });
+    if (!request) {
+      res.status(404).json({ error: "Request not found or not authorized" });
+      return;
+    }
     if (request.status !== "out_for_delivery") {
-      return res.status(400).json({
+      res.status(400).json({
         error: "Can only mark as delivered if status is out_for_delivery",
       });
+      return;
     }
     request.status = "delivered";
     await request.save();

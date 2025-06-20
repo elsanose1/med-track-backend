@@ -24,6 +24,7 @@ import userRoutes from "./routes/user";
 import adminRoutes from "./routes/admin";
 import chatRoutes from "./routes/chat";
 import medicationRoutes from "./routes/medicationRoutes";
+import approvedDrugRequestRoutes from "./routes/approvedDrugRequest";
 
 // middleware
 import errorHandler from "./middleware/errorHandler";
@@ -56,6 +57,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/medications", medicationRoutes);
+app.use("/api/approved-drug-requests", approvedDrugRequestRoutes);
 
 // error handler middleware
 app.use(errorHandler);

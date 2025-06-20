@@ -6,7 +6,7 @@ export interface IApprovedDrugRequest extends Document {
   drugID: mongoose.Types.ObjectId; // references Drug (assumed model)
   note?: string;
   price: number;
-  status: "preparing" | "with delivery" | "delivered";
+  status: "preparing" | "out_for_delivery" | "delivered" | "canceled ";
 }
 
 const ApprovedDrugRequestSchema: Schema = new Schema(
@@ -18,7 +18,7 @@ const ApprovedDrugRequestSchema: Schema = new Schema(
     price: { type: Number, required: true },
     status: {
       type: String,
-      enum: ["preparing", "with delivery", "delivered"],
+      enum: ["preparing", "out_for_delivery", "delivered", "canceled"],
       default: "preparing",
       required: true,
     },

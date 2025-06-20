@@ -59,8 +59,22 @@ export const getPharmacyApprovedDrugRequests = async (
 ) => {
   try {
     const { pharmacyID } = req.params;
-    const requests = await ApprovedDrugRequest.find({ pharmacyID });
-    res.json(requests);
+    const requests = await ApprovedDrugRequest.find({ pharmacyID }).populate({
+      path: "patientID",
+      select: "firstName lastName",
+    });
+    // Map to include patientName at the top level
+    const requestsWithPatientName = requests.map((req: any) => {
+      const patient = req.patientID;
+      const patientName = patient
+        ? `${patient.firstName} ${patient.lastName}`
+        : null;
+      return {
+        ...req.toObject(),
+        patientName,
+      };
+    });
+    res.json(requestsWithPatientName);
   } catch (error) {
     res
       .status(500)

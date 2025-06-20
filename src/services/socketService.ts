@@ -11,6 +11,7 @@ import {
 } from "./reminderService";
 import axios from "axios";
 import { FDA_API_BASE_URL, API_KEY } from "../controller/drugController";
+import ApprovedDrugRequest from "../models/ApprovedDrugRequest";
 
 // Interface for socket user data
 interface SocketUser {
@@ -154,9 +155,25 @@ export function initializeSocketIO(httpServer: HttpServer): SocketIOServer {
     });
 
     // Pharmacist responds to popup
-    socket.on("pharmacist_popup_response", (responseData) => {
+    socket.on("pharmacist_popup_response", async (responseData) => {
       const patientId = responseData.patientId;
       const patientUser = onlineUsers.get(patientId);
+
+      console.log(responseData);
+
+      // Create ApprovedDrugRequest
+      try {
+        await ApprovedDrugRequest.create({
+          patientID: responseData.patientId,
+          pharmacyID: socket.data.user.id,
+          drugID: responseData.drugId,
+          note: responseData.note,
+          price: responseData.price,
+          status: "preparing",
+        });
+      } catch (err) {
+        console.error("Error creating ApprovedDrugRequest:", err);
+      }
 
       // Notify the patient
       if (patientUser) {

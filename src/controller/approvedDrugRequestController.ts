@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import ApprovedDrugRequest from "../models/ApprovedDrugRequest";
 import mongoose from "mongoose";
+import axios from "axios";
+import { FDA_API_BASE_URL, API_KEY } from "./drugController";
 
 // Create ApprovedDrugRequest
 export const createApprovedDrugRequest = async (
@@ -36,15 +38,42 @@ export const getPatientApprovedDrugRequests = async (
       path: "pharmacyID",
       select: "pharmacyName",
     });
-    // Map to include pharmacyName at the top level
-    const requestsWithPharmacyName = requests.map((req: any) => {
-      const pharmacyName = req.pharmacyID?.pharmacyName || null;
-      return {
-        ...req.toObject(),
-        pharmacyName,
-      };
-    });
-    res.json(requestsWithPharmacyName);
+
+    const requestsWithDetails = await Promise.all(
+      requests.map(async (req: any) => {
+        const pharmacyName = req.pharmacyID?.pharmacyName || null;
+        let drugName = "Unknown";
+        try {
+          if (req.drugID) {
+            const response = await axios.get(FDA_API_BASE_URL, {
+              params: {
+                search: `id:"${req.drugID}"`,
+                api_key: API_KEY,
+              },
+            });
+            const data = response.data as any;
+            if (data.results && data.results.length > 0) {
+              drugName = data.results[0].openfda.brand_name?.[0] || "Unknown";
+            }
+          }
+        } catch (err) {
+          console.error(`Error fetching drug info for ID ${req.drugID}:`, err);
+        }
+
+        const reqObj = req.toObject();
+        if (req.drugID) {
+          delete reqObj.drugID;
+        }
+
+        return {
+          ...reqObj,
+          pharmacyName,
+          drugName,
+        };
+      })
+    );
+
+    res.json(requestsWithDetails);
   } catch (error) {
     res
       .status(500)
@@ -63,18 +92,46 @@ export const getPharmacyApprovedDrugRequests = async (
       path: "patientID",
       select: "firstName lastName",
     });
-    // Map to include patientName at the top level
-    const requestsWithPatientName = requests.map((req: any) => {
-      const patient = req.patientID;
-      const patientName = patient
-        ? `${patient.firstName} ${patient.lastName}`
-        : null;
-      return {
-        ...req.toObject(),
-        patientName,
-      };
-    });
-    res.json(requestsWithPatientName);
+
+    const requestsWithDetails = await Promise.all(
+      requests.map(async (req: any) => {
+        const patient = req.patientID;
+        const patientName = patient
+          ? `${patient.firstName} ${patient.lastName}`
+          : null;
+
+        let drugName = "Unknown";
+        try {
+          if (req.drugID) {
+            const response = await axios.get(FDA_API_BASE_URL, {
+              params: {
+                search: `id:"${req.drugID}"`,
+                api_key: API_KEY,
+              },
+            });
+            const data = response.data as any;
+            if (data.results && data.results.length > 0) {
+              drugName = data.results[0].openfda.brand_name?.[0] || "Unknown";
+            }
+          }
+        } catch (err) {
+          console.error(`Error fetching drug info for ID ${req.drugID}:`, err);
+        }
+
+        const reqObj = req.toObject();
+        if (req.drugID) {
+          delete reqObj.drugID;
+        }
+
+        return {
+          ...reqObj,
+          patientName,
+          drugName,
+        };
+      })
+    );
+
+    res.json(requestsWithDetails);
   } catch (error) {
     res
       .status(500)
@@ -96,7 +153,7 @@ export const cancelByPatient = async (req: Request, res: Response) => {
       res.status(400).json({ error: "Can only cancel if status is preparing" });
       return;
     }
-    request.status = "canceled ";
+    request.status = "canceled";
     await request.save();
     res.json(request);
   } catch (error) {
@@ -123,7 +180,7 @@ export const cancelByPharmacy = async (req: Request, res: Response) => {
       });
       return;
     }
-    request.status = "canceled ";
+    request.status = "canceled";
     await request.save();
     res.json(request);
   } catch (error) {

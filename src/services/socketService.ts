@@ -91,6 +91,49 @@ export function initializeSocketIO(httpServer: HttpServer): SocketIOServer {
       }
     });
 
+    // --- POPUP NOTIFICATION EVENTS ---
+    // Patient triggers a popup to all pharmacists
+    socket.on("patient_popup_request", (popupData) => {
+      const pharmacistSocketIds = getPharmacistSocketIds();
+      pharmacistSocketIds.forEach((socketId) => {
+        io.to(socketId).emit("show_popup", {
+          patientId: socket.data.user.id,
+          ...popupData,
+        });
+      });
+    });
+
+    // Patient cancels popup request
+    socket.on("patient_popup_cancel", () => {
+      const pharmacistSocketIds = getPharmacistSocketIds();
+      pharmacistSocketIds.forEach((socketId) => {
+        io.to(socketId).emit("close_popup", {
+          patientId: socket.data.user.id,
+        });
+      });
+    });
+
+    // Pharmacist responds to popup
+    socket.on("pharmacist_popup_response", (responseData) => {
+      const patientId = responseData.patientId;
+      const patientUser = onlineUsers.get(patientId);
+
+      // Notify the patient
+      if (patientUser) {
+        io.to(patientUser.socketId).emit("popup_response", responseData);
+      }
+
+      // Close the popup for all pharmacists for this patient
+      const pharmacistSocketIds = getPharmacistSocketIds();
+      pharmacistSocketIds.forEach((socketId) => {
+        io.to(socketId).emit("close_popup", {
+          patientId,
+          closedBy: socket.data.user.id, // Optionally, include which pharmacist closed it
+        });
+      });
+    });
+    // --- END POPUP EVENTS ---
+
     // Handle leaving a conversation room
     socket.on("leave_conversation", (conversationId) => {
       socket.leave(`conversation:${conversationId}`);
@@ -200,4 +243,11 @@ export function isUserOnline(userId: string): boolean {
 // Get online users
 export function getOnlineUsers(): SocketUser[] {
   return Array.from(onlineUsers.values());
+}
+
+// Get all connected pharmacist socket IDs
+function getPharmacistSocketIds(): string[] {
+  return Array.from(onlineUsers.values())
+    .filter((user) => user.userType === UserType.PHARMACY)
+    .map((user) => user.socketId);
 }

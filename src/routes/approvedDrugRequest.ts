@@ -3,6 +3,7 @@ import {
   createApprovedDrugRequest,
   getPatientApprovedDrugRequests,
   getPharmacyApprovedDrugRequests,
+  getPharmacyRequestCounts,
   cancelByPatient,
   cancelByPharmacy,
   markOutForDelivery,
@@ -19,6 +20,9 @@ router.get("/patient/:patientID", getPatientApprovedDrugRequests);
 
 // Get all ApprovedDrugRequests for a pharmacy
 router.get("/pharmacy/:pharmacyID", getPharmacyApprovedDrugRequests);
+
+// Get request counts for a pharmacy
+router.get("/pharmacy/:pharmacyID/counts", getPharmacyRequestCounts);
 
 // Patient cancels request (only if status is 'preparing')
 router.patch("/cancel/patient/:id", cancelByPatient);

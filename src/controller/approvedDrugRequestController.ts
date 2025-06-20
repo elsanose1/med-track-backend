@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { Request, Response, RequestHandler } from "express";
 import ApprovedDrugRequest from "../models/ApprovedDrugRequest";
 import mongoose from "mongoose";
 import axios from "axios";
@@ -233,5 +233,36 @@ export const markDelivered = async (req: Request, res: Response) => {
     res.json(request);
   } catch (error) {
     res.status(500).json({ error: "Failed to update status", details: error });
+  }
+};
+
+export const getPharmacyRequestCounts: RequestHandler = async (req, res) => {
+  try {
+    const { pharmacyID } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(pharmacyID)) {
+      res.status(400).json({ error: "Invalid pharmacy ID" });
+      return;
+    }
+
+    const preparingCount = await ApprovedDrugRequest.countDocuments({
+      pharmacyID,
+      status: "preparing",
+    });
+
+    const outForDeliveryCount = await ApprovedDrugRequest.countDocuments({
+      pharmacyID,
+      status: "out_for_delivery",
+    });
+
+    res.json({
+      preparing: preparingCount,
+      out_for_delivery: outForDeliveryCount,
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: "Failed to fetch pharmacy request counts",
+      details: error,
+    });
   }
 };

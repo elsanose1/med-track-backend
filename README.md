@@ -13,6 +13,7 @@ A comprehensive medication tracking and reminder system that helps patients mana
 - **Chat System**: Built-in communication between patients and pharmacies
 - **Pharmacy Verification**: Admin approval system for pharmacy registration
 - **Caching System**: Efficient caching for drug data to reduce API calls
+- **TypeScript Types**: Comprehensive TypeScript definitions for API requests and responses
 
 ## Tech Stack
 
@@ -61,13 +62,84 @@ FRONTEND_URL=http://localhost:3001
 npm run dev
 ```
 
+## API Types for Frontend Development
+
+We provide comprehensive TypeScript type definitions for all API requests and responses in `src/types/api.types.ts`. Each interface is annotated with JSDoc comments indicating which API endpoint it corresponds to, making it clear what data structure to expect from each endpoint.
+
+### Using the Types in a Frontend Project
+
+1. **Copy the types to your frontend project**:
+
+   You can copy the `src/types/api.types.ts` file to your frontend project, or set up a shared types package.
+
+2. **Import and use the types with endpoint clarity**:
+
+   ```typescript
+   // Example usage in a frontend API service
+   import { LoginRequest, LoginResponse, ApiError } from "./types/api.types";
+
+   // The LoginResponse type is documented as: Response from: POST /api/auth/login
+   async function login(credentials: LoginRequest): Promise<LoginResponse> {
+     try {
+       const response = await fetch("/api/auth/login", {
+         method: "POST",
+         headers: { "Content-Type": "application/json" },
+         body: JSON.stringify(credentials),
+       });
+
+       if (!response.ok) {
+         const errorData: ApiError = await response.json();
+         throw new Error(errorData.message);
+       }
+
+       return (await response.json()) as LoginResponse;
+     } catch (error) {
+       console.error("Login failed:", error);
+       throw error;
+     }
+   }
+   ```
+
+3. **Benefits**:
+
+   - Type checking for request payloads
+   - Autocompletion for response properties
+   - Clear documentation of which endpoint returns what data
+   - Easy to understand API response structure expectations
+   - Safer refactoring when API changes
+
+### Key Type Categories
+
+All types in the API types file are clearly documented with JSDoc comments showing which endpoint returns them:
+
+- **Auth Types**: `/** Response from: POST /api/auth/login */`
+- **User Types**: `/** Response from: GET /api/users/profile */`
+- **Medication Types**: `/** Response from: GET /api/medications */`
+- **Drug Types**: `/** Response from: GET /api/drugs/search */`
+- **Chat Types**: `/** Response from: GET /api/chat/conversations */`
+- **Admin Types**: `/** Response from: GET /api/admin/pharmacies/pending */`
+
+### Where to Find the Types
+
+The types are located in `src/types/api.types.ts` and exported via `src/types/index.ts`. You can copy these files to your frontend project or set up a shared library.
+
 ## API Endpoints
 
 ### Authentication
 
 - `POST /api/auth/register` - Register a new patient
+
+  - Request: `{ username, email, password, firstName, lastName, dateOfBirth, phoneNumber, address, medicalHistory, allergies }`
+  - Response: `{ message: "User registered successfully" }`
+
 - `POST /api/auth/login` - Login for patients and pharmacies
+
+  - Request: `{ email, password }`
+  - Response: `{ token, isVerified?, message? }`
+
 - `POST /api/auth/change-password` - Change user password (requires authentication)
+  - Request: `{ currentPassword, newPassword }`
+  - Response: `{ message: "Password changed successfully" }`
 
 ### Pharmacy Registration and Verification
 

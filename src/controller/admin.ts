@@ -231,3 +231,164 @@ export async function verifyPharmacy(req: AuthenticatedRequest, res: Response) {
     });
   }
 }
+
+/**
+ * Get all patients (admin only)
+ */
+export async function getAllPatients(req: AuthenticatedRequest, res: Response) {
+  try {
+    const patients = await User.find({ userType: UserType.PATIENT }).select(
+      "-password"
+    );
+    res.json(patients);
+  } catch (err) {
+    res.status(500).json({ message: "Error fetching patients", error: err });
+  }
+}
+
+/**
+ * Get all pharmacies (admin only)
+ */
+export async function getAllPharmacies(
+  req: AuthenticatedRequest,
+  res: Response
+) {
+  try {
+    const pharmacies = await User.find({
+      userType: UserType.PHARMACY,
+      isVerified: true,
+    }).select("-password");
+    res.json(pharmacies);
+  } catch (err) {
+    res.status(500).json({ message: "Error fetching pharmacies", error: err });
+  }
+}
+
+/**
+ * Get all admins (admin only)
+ */
+export async function getAllAdmins(req: AuthenticatedRequest, res: Response) {
+  try {
+    const admins = await User.find({ userType: UserType.ADMIN }).select(
+      "-password"
+    );
+    res.json(admins);
+  } catch (err) {
+    res.status(500).json({ message: "Error fetching admins", error: err });
+  }
+}
+
+/**
+ * Get all users count (admin only)
+ */
+export async function getAllUsersCount(
+  req: AuthenticatedRequest,
+  res: Response
+) {
+  try {
+    const count = await User.countDocuments({ userType: { $exists: true } });
+    res.json({ count });
+  } catch (err) {
+    res.status(500).json({ message: "Error fetching users count", error: err });
+  }
+}
+
+/**
+ * Get all patients count (admin only)
+ */
+export async function getAllPatientsCount(
+  req: AuthenticatedRequest,
+  res: Response
+) {
+  try {
+    const count = await User.countDocuments({ userType: UserType.PATIENT });
+    res.json({ count });
+  } catch (err) {
+    res
+      .status(500)
+      .json({ message: "Error fetching patients count", error: err });
+  }
+}
+
+/**
+ * Get all pharmacies count (admin only)
+ */
+export async function getAllPharmaciesCount(
+  req: AuthenticatedRequest,
+  res: Response
+) {
+  try {
+    const count = await User.countDocuments({ userType: UserType.PHARMACY });
+    res.json({ count });
+  } catch (err) {
+    res
+      .status(500)
+      .json({ message: "Error fetching pharmacies count", error: err });
+  }
+}
+
+/**
+ * Get all admins count (admin only)
+ */
+export async function getAllAdminsCount(
+  req: AuthenticatedRequest,
+  res: Response
+) {
+  try {
+    const count = await User.countDocuments({ userType: UserType.ADMIN });
+    res.json({ count });
+  } catch (err) {
+    res
+      .status(500)
+      .json({ message: "Error fetching admins count", error: err });
+  }
+}
+
+/**
+ * deverify a pharmacy account (set isVerified to false)
+ */
+export async function deverifyPharmacy(
+  req: AuthenticatedRequest,
+  res: Response
+) {
+  try {
+    const { pharmacyId } = req.params;
+
+    // Find the pharmacy user
+    const pharmacy = await User.findOne({
+      _id: pharmacyId,
+      userType: UserType.PHARMACY,
+    });
+
+    if (!pharmacy) {
+      return res.status(404).json({
+        message: "Pharmacy not found",
+      });
+    }
+
+    if (!pharmacy.isVerified) {
+      return res.status(400).json({
+        message: "Pharmacy is already unverified",
+      });
+    }
+
+    pharmacy.isVerified = false;
+    await pharmacy.save();
+
+    res.json({
+      message: "Pharmacy account deverified successfully",
+      pharmacy: {
+        id: pharmacy._id,
+        username: pharmacy.username,
+        email: pharmacy.email,
+        pharmacyName: pharmacy.pharmacyName,
+        isVerified: pharmacy.isVerified,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({
+      message: "Error deverifying pharmacy",
+      error: err,
+    });
+  }
+}

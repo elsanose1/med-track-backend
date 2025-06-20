@@ -36,89 +36,9 @@ export function initializeReminderService(): void {
 }
 
 /**
- * Helper to schedule advance reminders (5 min & 1 min before)
- */
-async function sendAdvanceReminders() {
-  try {
-    const now = new Date();
-    const fiveMinFromNow = new Date(now.getTime() + 4 * 60 * 1000);
-    const oneMinFromNow = new Date(now.getTime() + 1 * 60 * 1000);
-    const io = getSocketIOInstance();
-    if (!io) return;
-
-    // 5 minutes before
-    const meds5min = await PatientMedication.find({
-      active: true,
-      reminders: {
-        $elemMatch: {
-          time: { $gte: fiveMinFromNow, $lt: new Date(fiveMinFromNow.getTime() + 60000) },
-          status: ReminderStatus.ACTIVE,
-        },
-      },
-    }).populate("patient", "id firstName lastName");
-    for (const medication of meds5min) {
-      const patientId = medication.patient._id.toString();
-      for (const reminder of medication.reminders) {
-        if (
-          reminder.status === ReminderStatus.ACTIVE &&
-          reminder.time >= fiveMinFromNow &&
-          reminder.time < new Date(fiveMinFromNow.getTime() + 60000)
-        ) {
-          io.to(`user:${patientId}`).emit("medication_reminder", {
-            id: reminder._id,
-            medicationId: medication._id,
-            medicationName: medication.brandName,
-            dosage: medication.dosage,
-            time: reminder.time,
-            instructions: medication.instructions,
-            notes: reminder.notes || medication.notes,
-            advance: 5,
-          });
-        }
-      }
-    }
-
-    // 1 minute before
-    const meds1min = await PatientMedication.find({
-      active: true,
-      reminders: {
-        $elemMatch: {
-          time: { $gte: oneMinFromNow, $lt: new Date(oneMinFromNow.getTime() + 60000) },
-          status: ReminderStatus.ACTIVE,
-        },
-      },
-    }).populate("patient", "id firstName lastName");
-    for (const medication of meds1min) {
-      const patientId = medication.patient._id.toString();
-      for (const reminder of medication.reminders) {
-        if (
-          reminder.status === ReminderStatus.ACTIVE &&
-          reminder.time >= oneMinFromNow &&
-          reminder.time < new Date(oneMinFromNow.getTime() + 60000)
-        ) {
-          io.to(`user:${patientId}`).emit("medication_reminder", {
-            id: reminder._id,
-            medicationId: medication._id,
-            medicationName: medication.brandName,
-            dosage: medication.dosage,
-            time: reminder.time,
-            instructions: medication.instructions,
-            notes: reminder.notes || medication.notes,
-            advance: 1,
-          });
-        }
-      }
-    }
-  } catch (err) {
-    console.error("Error sending advance reminders:", err);
-  }
-}
-
-/**
  * Check for upcoming medication reminders and send notifications
  */
 async function checkUpcomingMedicationReminders(): Promise<void> {
-  await sendAdvanceReminders();
   try {
     const now = new Date();
     const futureWindow = new Date(

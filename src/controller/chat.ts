@@ -340,7 +340,7 @@ export async function listPharmacies(req: AuthenticatedRequest, res: Response) {
       userType: UserType.PHARMACY,
       isVerified: true, // Only show verified pharmacies
     })
-      .select("username firstName lastName pharmacyName licenseNumber")
+      .select("pharmacyName licenseNumber email phoneNumber address")
       .sort({ pharmacyName: 1 });
 
     res.json(pharmacies);

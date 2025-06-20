@@ -89,9 +89,6 @@ export async function registerHandler(req: Request, res: Response) {
   } = req.body;
 
   try {
-    // Generate a username from email if not provided
-    const generatedUsername = username || email.split('@')[0] + Math.floor(Math.random() * 1000);
-
     // Prevent creation of admin users through public registration
     if (userType === UserType.ADMIN) {
       return res.status(403).json({
@@ -102,7 +99,7 @@ export async function registerHandler(req: Request, res: Response) {
 
     // Check if username or email already exists
     const existingUser = await User.findOne({
-      $or: [{ username: generatedUsername }, { email }],
+      $or: [{ username }, { email }],
     });
 
     if (existingUser) {
@@ -123,7 +120,7 @@ export async function registerHandler(req: Request, res: Response) {
 
       // Create pharmacy account (unverified)
       const pharmacy = new User({
-        username: generatedUsername,
+        username,
         email,
         password,
         firstName,
@@ -146,7 +143,7 @@ export async function registerHandler(req: Request, res: Response) {
 
     // For patient registration
     const user = new User({
-      username: generatedUsername,
+      username,
       email,
       password,
       firstName,
@@ -157,6 +154,7 @@ export async function registerHandler(req: Request, res: Response) {
       address,
       medicalHistory,
       allergies,
+      isVerified: true, // patient is verified by default
     });
 
     await user.save();
